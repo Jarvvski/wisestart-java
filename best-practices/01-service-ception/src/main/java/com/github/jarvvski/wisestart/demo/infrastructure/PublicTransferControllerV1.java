@@ -2,6 +2,7 @@ package com.github.jarvvski.wisestart.demo.infrastructure;
 
 import com.github.jarvvski.wisestart.demo.application.CreateTransferCommand;
 import com.github.jarvvski.wisestart.demo.application.TransferCreatedResponse;
+import com.github.jarvvski.wisestart.demo.application.TransferCreationService;
 import com.github.jarvvski.wisestart.demo.domain.Transfer;
 import com.github.jarvvski.wisestart.demo.domain.TransferId;
 import com.github.jarvvski.wisestart.demo.domain.TransferRepository;
@@ -23,23 +24,15 @@ import java.util.UUID;
 @Slf4j
 public class PublicTransferControllerV1 {
 
-    private final TransferRepository transferRepository;
+    private final TransferCreationService transferCreationService;
 
     @PostMapping("/create")
     public ResponseEntity<TransferCreatedResponse> createTransfer(@RequestBody CreateTransferCommand createTransferCommand) {
         log.info("Creating transfer via http call");
-        final var transfer = Transfer.builder()
-            .id(TransferId.next())
-            .money(createTransferCommand.money())
-            .source(createTransferCommand.source())
-            .recipient(createTransferCommand.recipient())
-            .creationDate(Instant.now())
-            .lastUpdatedDate(Instant.now())
-            .build();
-        transferRepository.save(transfer);
 
+        final var response = transferCreationService.createTransfer(createTransferCommand);
         return ResponseEntity.created(
-                URI.create("/public/v1/transfer" + transfer.getId().toString())
-            ).body(transfer.toCreatedResponse());
+                URI.create("/public/v1/transfer" + response.id())
+            ).body(response);
     }
 }

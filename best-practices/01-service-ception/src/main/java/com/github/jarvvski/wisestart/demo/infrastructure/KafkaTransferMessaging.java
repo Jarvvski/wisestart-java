@@ -3,6 +3,7 @@ package com.github.jarvvski.wisestart.demo.infrastructure;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.jarvvski.wisestart.demo.application.CreateTransferCommand;
 import com.github.jarvvski.wisestart.demo.application.TransferCreatedResponse;
+import com.github.jarvvski.wisestart.demo.application.TransferCreationService;
 import com.github.jarvvski.wisestart.demo.domain.Transfer;
 import com.github.jarvvski.wisestart.demo.domain.TransferId;
 import com.github.jarvvski.wisestart.demo.domain.TransferMessaging;
@@ -25,24 +26,16 @@ public class KafkaTransferMessaging implements TransferMessaging {
     public static final String TOPIC_CREATE_TRANSFER = "demo.in.transfer.create";
     public static final String TOPIC_TRANSFER_CREATED = "demo.out.transfer.create";
 
-    private final TransferRepository transferRepository;
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper mapper;
+    private final TransferCreationService transferCreationService;
 
     @Override
     @KafkaListener(topics = TOPIC_CREATE_TRANSFER, containerFactory = "transferCreationContainerFactory")
     public void acceptNew(CreateTransferCommand createTransferCommand) {
         log.info("Creating transfer via kafka event");
-        final var transfer = Transfer.builder()
-            .id(TransferId.next())
-            .money(createTransferCommand.money())
-            .source(createTransferCommand.source())
-            .recipient(createTransferCommand.recipient())
-            .creationDate(Instant.now())
-            .lastUpdatedDate(Instant.now())
-            .build();
-        transferRepository.save(transfer);
-        publishNew(transfer.toCreatedResponse());
+        final var response = transferCreationService.createTransfer(createTransferCommand);
+        publishNew(response);
     }
 
     @Override
